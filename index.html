@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive AI Curriculum Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- 
+    Chosen Palette: Warm Neutrals (Slate, Stone, Amber)
+    Application Structure Plan: The application uses a top-level navigation to select the primary context: the Grade Band (High School, Middle School, etc.). This choice immediately filters the entire view. Below this, a secondary filter allows users to isolate sessions by one of the five "Big Ideas." The sessions themselves are presented as cards in a responsive grid, which is more scannable and mobile-friendly than a long table. This layered filtering approach was chosen because it mirrors the curriculum's natural hierarchy (Grade -> Topic -> Session) and allows educators to easily compare grade levels or trace a single concept (like "Learning") through the different stages of development, which is a primary user goal. A dynamic donut chart provides a quick visual summary of the curriculum's structure.
+    Visualization & Content Choices: 
+    - Report Info: Hierarchical curriculum plan. Goal: Make the plan explorable and comparable across grade levels. Viz/Presentation Method: Interactive Cards created with HTML/CSS. Interaction: JavaScript functions to filter and render cards based on user-selected grade band and "Big Idea" filters. Justification: Cards are ideal for presenting discrete chunks of structured text content. Filtering provides a powerful way to navigate the dense information without scrolling.
+    - Report Info: Thematic breakdown of sessions (5 Big Ideas). Goal: Provide a high-level visual summary of the curriculum's structure for a selected grade band. Viz/Presentation Method: Donut Chart. Interaction: The chart dynamically updates via JavaScript whenever the user selects a new grade band. Justification: A donut chart offers an immediate, easy-to-understand visual breakdown of the session categories. Library/Method: Chart.js, rendered on a Canvas element.
+    CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f1f5f9; /* slate-100 */
+        }
+        .nav-btn {
+            transition: all 0.3s ease;
+        }
+        .nav-btn.active {
+            background-color: #ca8a04; /* amber-600 */
+            color: #ffffff;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .filter-btn {
+            transition: all 0.3s ease;
+        }
+        .filter-btn.active {
+            background-color: #475569; /* slate-600 */
+            color: #ffffff;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 350px;
+            height: auto;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                max-height: 350px;
+            }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">AI Learning Paths</h1>
+            <p class="mt-2 text-lg text-slate-600">An Interactive 30-Session Curriculum Plan</p>
+        </header>
+
+        <nav id="grade-band-nav" class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+        </nav>
+
+        <main id="curriculum-content" class="bg-white rounded-2xl shadow-lg p-4 md:p-8">
+            <div id="grade-band-intro" class="mb-8">
+                <h2 id="grade-band-title" class="text-3xl font-bold text-slate-800 mb-2"></h2>
+                <p id="grade-band-description" class="text-slate-600"></p>
+            </div>
+
+            <div class="flex flex-col md:flex-row gap-8">
+                <div class="w-full md:w-1/3 lg:w-1/4">
+                    <div class="sticky top-8">
+                        <h3 class="text-xl font-semibold mb-4 text-center text-slate-700">Curriculum Structure</h3>
+                        <div class="chart-container">
+                            <canvas id="bigIdeasChart"></canvas>
+                        </div>
+                        <p class="text-center text-sm text-slate-500 mt-2">Distribution of sessions by "Big Idea".</p>
+                    </div>
+                </div>
+
+                <div class="w-full md:w-2/3 lg:w-3/4">
+                    <div id="filter-nav-container" class="mb-6">
+                        <h3 class="text-xl font-semibold mb-4 text-slate-700">Filter by Topic</h3>
+                        <div id="big-idea-filters" class="flex flex-wrap gap-2">
+                        </div>
+                    </div>
+                    <div id="session-cards-grid" class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
+                    </div>
+                </div>
+            </div>
+        </main>
+
+    </div>
+    
+    <footer class="text-center py-6 mt-4">
+        <p class="text-sm text-slate-500">
+            Created by <a href="https://www.linkedin.com/in/praveengarimella/" target="_blank" rel="noopener noreferrer" class="font-medium text-amber-600 hover:text-amber-700 transition-colors">Praveen Garimella</a>.
+        </p>
+    </footer>
+
+    <script>
+        const curriculumData = {
+            "highSchool": {
+                title: "High School (Grades 9-12)",
+                description: "This path focuses on deeper technical understanding, programming with Python, data analysis, and complex ethical considerations to prepare students for advanced study and modern careers.",
+                sessions: [
+                    { idea: "Perception", session: 1, concept: "Intro to AI & Perception", activity: "Analyze optical illusions and discuss why they trick human perception.", type: "unplugged" },
+                    { idea: "Perception", session: 2, concept: "Computer Vision", activity: "Use an online tool to inspect the RGB values of pixels in an image.", type: "plugged" },
+                    { idea: "Perception", session: 3, concept: "Feature Extraction", activity: "Manually trace the edges and key features of an image onto tracing paper.", type: "unplugged" },
+                    { idea: "Perception", session: 4, concept: "Speech Recognition", activity: "Use a web-based tool to record your voice and view its waveform and spectrogram.", type: "plugged" },
+                    { idea: "Perception", session: 5, concept: "Challenges in Perception", activity: "'Pictionary' with ambiguous or incomplete drawings to simulate perceptual challenges.", type: "unplugged" },
+                    { idea: "Perception", session: 6, concept: "Building with Perception", activity: "Follow a tutorial to build a simple computer vision app (e.g., face detection) using p5.js.", type: "plugged" },
+                    { idea: "Representation & Reasoning", session: 7, concept: "Knowledge Representation", activity: "Design a knowledge graph on a whiteboard for a complex domain like your favorite movie franchise.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 8, concept: "Search Algorithms", activity: "Solve a complex maze on paper, mapping out the path using both BFS and DFS strategies.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 9, concept: "Heuristics", activity: "Design heuristics for winning a game like Checkers or Tic-Tac-Toe.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 10, concept: "Probabilistic Reasoning", activity: "Use dice to explore probability and make predictions about outcomes.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 11, concept: "Game Trees & Strategy", activity: "Draw the complete game tree for Tic-Tac-Toe.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 12, concept: "Implementing Reasoning", activity: "Use Python to implement a simple decision tree for a given dataset.", type: "plugged" },
+                    { idea: "Learning", session: 13, concept: "Machine Learning Intro", activity: "Sort a mixed bag of objects (e.g., buttons) first with labels (supervised), then without (unsupervised).", type: "unplugged" },
+                    { idea: "Learning", session: 14, concept: "Linear Regression", activity: "Plot points on graph paper and draw a 'line of best fit' by hand.", type: "unplugged" },
+                    { idea: "Learning", session: 15, concept: "Neural Networks", activity: "Experiment with TensorFlow Playground, adjusting layers, neurons, and other parameters.", type: "plugged" },
+                    { idea: "Learning", session: 16, concept: "Training a Model", activity: "Use Scikit-learn in Python to train a classification model on a real-world dataset.", type: "plugged" },
+                    { idea: "Learning", session: 17, concept: "Bias and Fairness in ML", activity: "Analyze real-world headlines about biased AI and discuss the sources of bias.", type: "unplugged" },
+                    { idea: "Learning", session: 18, concept: "Evaluating Models", activity: "Evaluate the performance of the model you trained in Session 16 using different metrics.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 19, concept: "Natural Language Processing", activity: "Manually tokenize sentences and find the root 'stem' of different words.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: 20, concept: "Sentiment Analysis", activity: "Use an online sentiment analysis tool on different movie reviews and discuss the results.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 21, concept: "Large Language Models (LLMs)", activity: "Play a 'predict the next word' game in a group to simulate how LLMs work.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: 22, concept: "Prompt Engineering", activity: "Experiment with a generative AI tool, refining prompts to generate specific styles of text or images.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 23, concept: "The Limits of LLMs", activity: "Try to find examples of 'hallucinations' or biased outputs from a public LLM.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 24, concept: "Building a Chatbot", activity: "Use a simple framework like RiveScript to create a chatbot with a unique personality.", type: "plugged" },
+                    { idea: "Societal Impact", session: 25, concept: "AI Ethics Frameworks", activity: "In groups, draft a 'Code of Ethics for AI Development' for the classroom.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 26, concept: "AI and the Economy", activity: "Debate: 'AI will create more jobs than it destroys.'", type: "unplugged" },
+                    { idea: "Societal Impact", session: 27, concept: "AI in Public Policy", activity: "Analyze a real-world AI policy (e.g., EU AI Act) and discuss its implications.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 28, concept: "Explainable AI (XAI)", activity: "Discuss scenarios where an AI's decision would need a clear explanation (e.g., loan denial).", type: "unplugged" },
+                    { idea: "Societal Impact", session: 29, concept: "AI for Social Good", activity: "Research and present on a project that uses AI for social good (e.g., climate change).", type: "plugged" },
+                    { idea: "Societal Impact", session: 30, concept: "Final Project", activity: "Brainstorm and outline a final project that uses AI to solve a problem relevant to your community.", type: "unplugged" }
+                ]
+            },
+            "middleSchool": {
+                title: "Middle School (Grades 6-8)",
+                description: "This path focuses on core concepts and critical thinking about AI's role in society, using block-based programming and relatable, hands-on activities.",
+                sessions: [
+                    { idea: "Perception", session: 1, concept: "Intro to AI", activity: "Brainstorm things that are 'smart' vs. things that just follow instructions.", type: "unplugged" },
+                    { idea: "Perception", session: 2, concept: "Human vs. Computer Senses", activity: "'Mystery Box' challenge: identify objects using only one sense at a time.", type: "unplugged" },
+                    { idea: "Perception", session: 3, concept: "How Computers See", activity: "Create a 'pixel art' self-portrait on graph paper using different colors/numbers.", type: "unplugged" },
+                    { idea: "Perception", session: 4, concept: "How Computers Hear", activity: "Use a simple online oscilloscope to see the waveforms of different sounds.", type: "plugged" },
+                    { idea: "Perception", session: 5, concept: "Sensor Limitations", activity: "Play the 'Telephone' game to show how information gets distorted.", type: "unplugged" },
+                    { idea: "Perception", session: 6, concept: "Seeing with AI", activity: "Use a tool like Google's 'Thing Translator' to identify objects with a camera.", type: "plugged" },
+                    { idea: "Representation & Reasoning", session: 7, concept: "What is a Model?", activity: "Draw a map of the classroom, deciding what objects are important to include.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 8, concept: "Organizing Information", activity: "Create a classification system for a set of diverse objects (e.g., shoes, books).", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 9, concept: "Decision Trees", activity: "Create a paper-based flowchart to decide what to do after school.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 10, concept: "What is an Algorithm?", activity: "Write a detailed algorithm for making a paper airplane. Have a partner follow it exactly.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 11, concept: "Search Strategies", activity: "Solve a paper maze and highlight the path. Discuss different strategies.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 12, concept: "Building a Recommender", activity: "Build a simple 'movie recommender' in Scratch that asks questions and suggests a movie.", type: "plugged" },
+                    { idea: "Learning", session: 13, concept: "Learning from Data", activity: "Look at a series of pictures and find the pattern.", type: "unplugged" },
+                    { idea: "Learning", session: 14, concept: "Training Data", activity: "Explore a simple dataset in Google Sheets or Excel and create charts.", type: "plugged" },
+                    { idea: "Learning", session: 15, concept: "Supervised Learning", activity: "Use Teachable Machine to train a model to recognize different hand gestures.", type: "plugged" },
+                    { idea: "Learning", session: 16, concept: "What is Bias?", activity: "Look at a magazine and tally the representation of different groups of people.", type: "unplugged" },
+                    { idea: "Learning", session: 17, concept: "Finding Bias in AI", activity: "Test the Teachable Machine model from Session 15 with people it wasn't trained on.", type: "plugged" },
+                    { idea: "Learning", session: 18, concept: "Reinforcement Learning", activity: "Play a game of 'Hot and Cold' to find an object, simulating reinforcement learning.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: 19, concept: "Talking to Computers", activity: "Write down three different meanings for the sentence 'I saw her duck.'", type: "unplugged" },
+                    { idea: "Natural Interaction", session: 20, concept: "How Chatbots Work", activity: "Interact with a simple chatbot (like ELIZA) and try to figure out its rules.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 21, concept: "Natural Language Processing", activity: "On paper, label the nouns, verbs, and adjectives in different sentences.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: 22, concept: "AI and Creativity", activity: "Use a generative AI tool (like Chrome Music Lab or AutoDraw) to create something new.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 23, concept: "Recognizing Emotions", activity: "Use an online 'emotion from text' analyzer on different sentences.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 24, concept: "Build-a-Bot", activity: "Use Scratch to build a simple chatbot that can tell jokes or ask questions.", type: "plugged" },
+                    { idea: "Societal Impact", session: 25, concept: "AI All Around Us", activity: "Create a collage of all the places AI is found in daily life.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 26, concept: "Pros and Cons of AI", activity: "Hold a T-Chart debate about the pros and cons of social media algorithms.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 27, concept: "What is an Ethical Dilemma?", activity: "Discuss the 'Trolley Problem' and its variations for self-driving cars.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 28, concept: "AI and Fairness", activity: "Discuss a scenario: An AI for hiring only recommends men. Why is this a problem?", type: "unplugged" },
+                    { idea: "Societal Impact", session: 29, concept: "AI and Jobs of the Future", activity: "Brainstorm and draw a 'job of the future' that works with AI.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 30, concept: "AI for Good", activity: "Research a real organization using AI for good and share what you learned.", type: "plugged" }
+                ]
+            },
+            "grades3-5": {
+                title: "Grades 3-5",
+                description: "This path uses simple, tangible examples and block-based tools to introduce foundational AI concepts, focusing on creativity and early ethical considerations.",
+                sessions: [
+                    { idea: "Perception", session: 1, concept: "What is Intelligence?", activity: "Sort picture cards into 'Smart,' 'Not Smart,' and 'Maybe Smart.'", type: "unplugged" },
+                    { idea: "Perception", session: 2, concept: "Our Five Senses", activity: "'Feely Bag': Guess objects using only the sense of touch.", type: "unplugged" },
+                    { idea: "Perception", session: 3, concept: "Computer Senses", activity: "Go on a 'sensor walk' to find and draw all the sensors in the classroom.", type: "unplugged" },
+                    { idea: "Perception", session: 4, concept: "What is a Pixel?", activity: "Give students a small grid and have them create a picture by coloring in the squares.", type: "unplugged" },
+                    { idea: "Perception", session: 5, concept: "AI Can Be Fooled", activity: "Look at optical illusions and pictures with hidden objects.", type: "unplugged" },
+                    { idea: "Perception", session: 6, concept: "AI Sees and Hears", activity: "Use a simple voice-to-text tool or an app that identifies objects with the camera.", type: "plugged" },
+                    { idea: "Representation & Reasoning", session: 7, concept: "Sorting and Grouping", activity: "Sort a collection of leaves or buttons by different rules (color, size, shape).", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 8, concept: "Making Rules", activity: "Create rules for a new playground game.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 9, concept: "What is a Map?", activity: "Draw a map from your desk to the classroom door.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 10, concept: "Following Directions", activity: "One student gives precise directions for another to draw a simple shape.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 11, concept: "Making a Choice", activity: "Create a flowchart on paper that decides 'What snack should I eat?'", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: 12, concept: "Making a Game", activity: "Use ScratchJr or Scratch to make a character move based on if/then rules.", type: "plugged" },
+                    { idea: "Learning", session: 13, concept: "Learning by Example", activity: "Teacher shows examples of a 'Zorp' (a shape that is blue and has 4 sides). Students must then identify other Zorps.", type: "unplugged" },
+                    { idea: "Learning", session: 14, concept: "What is Data?", activity: "Take a class poll ('What is your favorite ice cream?'). Create a bar chart of the data.", type: "unplugged" },
+                    { idea: "Learning", session: 15, concept: "Teaching a Computer", activity: "Use Teachable Machine to teach the computer to recognize two different objects (e.g., a pen vs. a book).", type: "plugged" },
+                    { idea: "Learning", session: 16, concept: "Rock, Paper, Scissors Bot", activity: "Play Rock, Paper, Scissors against a partner who has a secret pattern. Try to figure it out.", type: "unplugged" },
+                    { idea: "Learning", session: 17, concept: "What is 'Unfair'?", activity: "Share a small bag of candy unfairly among a group. Discuss why it's unfair.", type: "unplugged" },
+                    { idea: "Learning", session: 18, concept: "Unfair Data", activity: "Train Teachable Machine with a biased dataset (e.g., only your face for 'person') and see how it fails on others.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 19, concept: "Ways to Communicate", activity: "Play a game of charades.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: 20, concept: "Giving Clear Commands", activity: "'Robot' activity: one student is a robot, the other gives one-step commands to navigate a maze.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: 21, concept: "Talking to a Smart Speaker", activity: "Interact with a smart speaker or a chatbot, trying different kinds of questions.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 22, concept: "Computers and Feelings", activity: "Draw faces with different emotions.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: 23, concept: "AI Makes Art", activity: "Use Google's AutoDraw to see how AI can guess your doodles.", type: "plugged" },
+                    { idea: "Natural Interaction", session: 24, concept: "Making a Story", activity: "Use ScratchJr or Scratch to create a story where you can talk to a character.", type: "plugged" },
+                    { idea: "Societal Impact", session: 25, concept: "Technology Helpers", activity: "Draw a picture of your favorite piece of technology and explain how it helps you.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 26, concept: "Good Tool, Bad Tool", activity: "Discuss how a hammer can be used to build a house (good) or break a window (bad).", type: "unplugged" },
+                    { idea: "Societal Impact", session: 27, concept: "Making Fair Rules", activity: "As a class, come up with rules for using classroom tablets that are fair to everyone.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 28, concept: "AI Helping People", activity: "Watch a short video about how robots help in hospitals or factories.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 29, concept: "Self-Driving Cars", activity: "Draw a picture of a self-driving car and discuss what it should do in different situations.", type: "unplugged" },
+                    { idea: "Societal Impact", session: 30, concept: "Design a Helpful Robot", activity: "Draw and label a robot that could help with a chore at home or school.", type: "unplugged" }
+                ]
+            },
+            "k-2": {
+                title: "Grades K-2",
+                description: "This path is play-based, focusing on relating AI concepts to students' own experiences and senses through simple, hands-on activities and group play.",
+                sessions: [
+                    { idea: "Perception", session: "1-2", concept: "Our Senses", activity: "Stations for each sense (e.g., 'I Spy,' listening to sounds, feeling different textures).", type: "unplugged" },
+                    { idea: "Perception", session: "3-4", concept: "Computer Senses", activity: "Go on a 'robot walk' to find all the 'robot eyes and ears' in the school.", type: "unplugged" },
+                    { idea: "Perception", session: "5-6", concept: "Following Senses", activity: "Play 'Simon Says' using different senses ('Simon says touch something rough').", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: "7-8", concept: "Sorting", activity: "Sort piles of colored blocks, animal toys, or shapes.", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: "9-10", concept: "Rules", activity: "Play a simple rule-based game like 'Red Light, Green Light.'", type: "unplugged" },
+                    { idea: "Representation & Reasoning", session: "11-12", concept: "First, Then", activity: "Sequence picture cards for a simple story or activity (e.g., getting ready for school).", type: "unplugged" },
+                    { idea: "Learning", session: "13-14", concept: "Learning is Remembering", activity: "Play a memory game with picture cards.", type: "unplugged" },
+                    { idea: "Learning", session: "15-16", concept: "Teaching by Showing", activity: "Teacher makes a pattern with blocks, and students copy it.", type: "unplugged" },
+                    { idea: "Learning", session: "17-18", concept: "Guessing Game", activity: "Play 'Guess the Animal' where the teacher gives simple clues.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: "19-20", concept: "Talking and Listening", activity: "Use puppets to have a simple conversation.", type: "unplugged" },
+                    { idea: "Natural Interaction", session: "21-22", concept: "Giving Directions", activity: "'Robot Teacher': Students give the teacher simple commands like 'walk forward' or 'turn around.'", type: "unplugged" },
+                    { idea: "Natural Interaction", session: "23-24", concept: "Happy and Sad Faces", activity: "Make happy, sad, and angry faces in a mirror or with play-doh.", type: "unplugged" },
+                    { idea: "Societal Impact", session: "25-26", concept: "Technology Helps Us", activity: "Show and tell with a favorite toy that moves or makes sounds.", type: "unplugged" },
+                    { idea: "Societal Impact", session: "27-28", concept: "Being Fair", activity: "Practice sharing blocks or crayons fairly in a group activity.", type: "unplugged" },
+                    { idea: "Societal Impact", session: "29-30", concept: "Helpful Robots", activity: "Draw a robot that could help your family or your teacher.", type: "unplugged" }
+                ]
+            }
+        };
+
+        const bigIdeas = ["Perception", "Representation & Reasoning", "Learning", "Natural Interaction", "Societal Impact"];
+        const ideaColors = {
+            "Perception": "#38bdf8", // sky-400
+            "Representation & Reasoning": "#fbbf24", // amber-400
+            "Learning": "#34d399", // emerald-400
+            "Natural Interaction": "#a78bfa", // violet-400
+            "Societal Impact": "#f87171" // red-400
+        };
+
+        let state = {
+            currentGradeBand: 'highSchool',
+            currentBigIdea: 'All'
+        };
+
+        let bigIdeasChart = null;
+
+        function createSessionCard(session) {
+            const color = ideaColors[session.idea] || '#9ca3af';
+            const icon = session.type === 'plugged' ? '🔌' : '✂️';
+            const iconLabel = session.type === 'plugged' ? 'Plugged Activity' : 'Unplugged Activity';
+
+            return `
+                <div class="border-l-4 rounded-r-lg bg-slate-50 p-4 flex flex-col h-full shadow-sm hover:shadow-md transition-shadow duration-300" style="border-color: ${color};">
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">${session.idea}</span>
+                            <span title="${iconLabel}" class="text-xl">${icon}</span>
+                        </div>
+                        <h4 class="font-bold text-slate-800 mb-1">Session ${session.session}: ${session.concept}</h4>
+                        <p class="text-sm text-slate-600">${session.activity}</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderContent() {
+            const gradeBandData = curriculumData[state.currentGradeBand];
+            
+            document.getElementById('grade-band-title').textContent = gradeBandData.title;
+            document.getElementById('grade-band-description').textContent = gradeBandData.description;
+
+            const grid = document.getElementById('session-cards-grid');
+            grid.innerHTML = '';
+            
+            const filteredSessions = state.currentBigIdea === 'All'
+                ? gradeBandData.sessions
+                : gradeBandData.sessions.filter(s => s.idea === state.currentBigIdea);
+
+            filteredSessions.forEach(session => {
+                grid.innerHTML += createSessionCard(session);
+            });
+
+            updateActiveButtons();
+            updateChart();
+        }
+
+        function updateActiveButtons() {
+            document.querySelectorAll('#grade-band-nav .nav-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.gradeband === state.currentGradeBand);
+            });
+            document.querySelectorAll('#big-idea-filters .filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.idea === state.currentBigIdea);
+            });
+        }
+
+        function handleGradeBandChange(gradeBandKey) {
+            state.currentGradeBand = gradeBandKey;
+            state.currentBigIdea = 'All';
+            renderContent();
+        }
+
+        function handleBigIdeaChange(idea) {
+            state.currentBigIdea = idea;
+            renderContent();
+        }
+
+        function updateChart() {
+            const ctx = document.getElementById('bigIdeasChart').getContext('2d');
+            const gradeBandData = curriculumData[state.currentGradeBand];
+            
+            const counts = gradeBandData.sessions.reduce((acc, session) => {
+                acc[session.idea] = (acc[session.idea] || 0) + 1;
+                return acc;
+            }, {});
+
+            const labels = Object.keys(counts);
+            const data = Object.values(counts);
+            const backgroundColors = labels.map(label => ideaColors[label]);
+
+            if (bigIdeasChart) {
+                bigIdeasChart.destroy();
+            }
+
+            bigIdeasChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Sessions per Big Idea',
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        borderColor: '#ffffff',
+                        borderWidth: 2,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                boxWidth: 15,
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    if (context.parsed !== null) {
+                                        label += context.parsed + ' sessions';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function init() {
+            const gradeNav = document.getElementById('grade-band-nav');
+            Object.keys(curriculumData).forEach(key => {
+                const button = document.createElement('button');
+                button.textContent = curriculumData[key].title.split('(')[0].trim();
+                button.className = 'nav-btn px-4 py-2 rounded-lg font-semibold bg-white text-slate-700 shadow-sm hover:bg-amber-500 hover:text-white';
+                button.dataset.gradeband = key;
+                button.onclick = () => handleGradeBandChange(key);
+                gradeNav.appendChild(button);
+            });
+
+            const filterNav = document.getElementById('big-idea-filters');
+            ['All', ...bigIdeas].forEach(idea => {
+                const button = document.createElement('button');
+                button.textContent = idea;
+                button.className = 'filter-btn px-3 py-1.5 text-sm rounded-md font-medium bg-slate-100 text-slate-600 hover:bg-slate-500 hover:text-white';
+                button.dataset.idea = idea;
+                button.onclick = () => handleBigIdeaChange(idea);
+                filterNav.appendChild(button);
+            });
+
+            renderContent();
+        }
+
+        window.onload = init;
+    </script>
+
+</body>
+</html>
